@@ -1,7 +1,10 @@
+library(tidyverse)
 
 # Tratamiento de datos para empresas
+load(file = "empresas_totales.RData")
 
 # Se parte de datos enlistados por fila. Cada fila es una empresa. Algunas tienen web y otras no.
+empresas <- empresas_totales
 
 # Lista de empresas
 empresas_lista <- as.list(empresas)
@@ -19,3 +22,4 @@ empresas_uniformes <- lista_separada %>%
 # Convertir la lista uniforme en un tibble
 tibble_data <- empresas_uniformes %>%
   map_df(~ set_names(., paste0("Col", 1:max_length)))
+
