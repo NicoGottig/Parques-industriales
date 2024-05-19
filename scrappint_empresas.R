@@ -21,7 +21,7 @@ emp_i <- '//*[@id="body"]/div[3]/div/div[1]/div[1]/div[3]/div/section/div['
 boton <- '//*[@id="body"]/div[3]/div/div[1]/div[1]/div[3]/div/section/div[11]/button[3]'
 
 # 420 páginas son 419 clicks...
-for (i in 1:10) {
+for (i in 1:419) {
   
   
   for (j in 1:11) {
@@ -72,7 +72,7 @@ remDr$navigate(web_parques)
 
 # Primero vamos a necesitar un listado de parques con sus respectivos links (62 paginas)
 enlaces_empresas <- NULL
-for (i in 1:10) {
+for (i in 1:62) {
   
   
   for (j in 1:15) {
@@ -116,17 +116,19 @@ for (i in 1:10) {
 # Limpieza rápida de la base
 enlaces_empresas <- enlaces_empresas %>% 
   filter(parque != "◀ Anterior" & nchar(parque) > 1)
+
 save(enlaces_empresas, file = "enlaces_empresas.RData")
 
 # Esto lo hacemos para las pruebas
 enlaces_empresas <- enlaces_empresas %>% 
-  filter(nchar(enlace) == 48)
+  filter(nchar(enlace) <= 50)
 
 # Ahora extraemos la información de cada parque específico (esto estará muy sujeto a errores)
 df <- enlaces_empresas
-df_total <- NULL
+atributos_parques <- NULL
+atributos_parques2 <- NULL
 
-for (i in 1:nrow(df)) {
+for (i in 495:nrow(df)) {
   
   # cargo la pagina
   web <- df$enlace[i] # acordarse el i
@@ -134,25 +136,39 @@ for (i in 1:nrow(df)) {
   print("Cargando página....")
   Sys.sleep(2)
   
-  # Extraigo nombre
-  n <- remDr$findElement('xpath', '//*[@id="body"]/div[3]/div/div[1]/div[1]/div[3]/div/h1')
   
-  # Características
-  caracteristicas <- remDr$findElement('xpath', '//*[@id="body"]/div[3]/div/div[1]/div[1]/div[3]/div/div[1]')
+  resultado <- tryCatch({
+    suppressMessages({
+      
+      # Extraigo nombre
+      n <- remDr$findElement('xpath', '//*[@id="body"]/div[3]/div/div[1]/div[1]/div[3]/div/h1')
+      
+      # Características
+      caracteristicas <- remDr$findElement('xpath', '//*[@id="body"]/div[3]/div/div[1]/div[1]/div[3]/div/div[1]')
+      
+      # amplio info
+      ampliar <- remDr$findElement('xpath', '//*[@id="show_attrib"]') 
+      ampliar$sendKeysToElement(list(key = "enter"))
+      print("Buscando atributos....")
+      Sys.sleep(2)
+      
+      # Atributos
+      atributos <- remDr$findElement('xpath', '//*[@id="attrib"]/table')
+      
+      # Extraigo texto de los elementos
+      nombre <- n$getElementText() %>% unlist(.) 
+      car <- caracteristicas$getElementText() %>% unlist(.) 
+      atr <- atributos$getElementText() %>% unlist(.) 
+      
+      
+    })
+  }, 
   
-  # amplio info
-  ampliar <- remDr$findElement('xpath', '//*[@id="show_attrib"]') 
-  ampliar$sendKeysToElement(list(key = "enter"))
-  print("Buscando atributos....")
-  Sys.sleep(2)
-  
-  # Atributos
-  atributos <- remDr$findElement('xpath', '//*[@id="attrib"]/table')
-  
-  # Extraigo texto de los elementos
-  nombre <- n$getElementText() %>% unlist(.) 
-  car <- caracteristicas$getElementText() %>% unlist(.) 
-  atr <- atributos$getElementText() %>% unlist(.) 
+  error = function(e) {
+    NA_character_
+    return(NULL)
+  }
+  )
   
   # Armo fila del dataframe
   tmp <- data.frame(
@@ -162,11 +178,13 @@ for (i in 1:nrow(df)) {
   )
   
   # uno al df total
-  df_total <- rbind(df_total, tmp)
+  atributos_parques2 <- rbind(atributos_parques2, tmp)
   print(paste("Página", i, "finalizada. Último parque:"))
-  print(tail(df_total[,1],1))
+  print(tail(tmp[,1],1))
+  tmp <- NULL
+  
 
 }
 
-save(df_total, file = "atributos_parques.RData")
+save(atributos_parques2, file = "atributos_parques2.RData")
 
